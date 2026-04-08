@@ -1,0 +1,165 @@
+{
+  "pipeline_id": "hard-001",
+  "name": "Enterprise Monorepo Pipeline",
+  "description": "20-stage enterprise DAG. 3 stages look like real failures but are flaps. 2 stages look like flaps but are real. Hidden cascade: canary-deploy failure causes smoke-tests to fail even though it's not shown in DAG.",
+  "stages": [
+    {
+      "stage_id": "checkout",
+      "name": "checkout",
+      "estimated_duration": 8,
+      "dependencies": [],
+      "is_critical": true
+    },
+    {
+      "stage_id": "lint-frontend",
+      "name": "lint-frontend",
+      "estimated_duration": 15,
+      "dependencies": ["checkout"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "lint-backend",
+      "name": "lint-backend",
+      "estimated_duration": 18,
+      "dependencies": ["checkout"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "lint-infra",
+      "name": "lint-infra",
+      "estimated_duration": 12,
+      "dependencies": ["checkout"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "type-check",
+      "name": "type-check",
+      "estimated_duration": 20,
+      "dependencies": ["checkout"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "security-scan",
+      "name": "security-scan",
+      "estimated_duration": 35,
+      "dependencies": ["checkout"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "unit-tests-frontend",
+      "name": "unit-tests-frontend",
+      "estimated_duration": 80,
+      "dependencies": ["lint-frontend", "lint-backend"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "unit-tests-backend",
+      "name": "unit-tests-backend",
+      "estimated_duration": 95,
+      "dependencies": ["lint-backend"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "build-frontend",
+      "name": "build-frontend",
+      "estimated_duration": 50,
+      "dependencies": ["unit-tests-frontend"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "build-backend",
+      "name": "build-backend",
+      "estimated_duration": 55,
+      "dependencies": ["unit-tests-backend"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "build-docker",
+      "name": "build-docker",
+      "estimated_duration": 70,
+      "dependencies": ["build-frontend", "build-backend"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "dependency-audit",
+      "name": "dependency-audit",
+      "estimated_duration": 30,
+      "dependencies": ["build-backend"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "db-migration-check",
+      "name": "db-migration-check",
+      "estimated_duration": 25,
+      "dependencies": ["build-backend"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "e2e-test-suite",
+      "name": "e2e-test-suite",
+      "estimated_duration": 120,
+      "dependencies": ["build-docker"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "perf-benchmark",
+      "name": "perf-benchmark",
+      "estimated_duration": 90,
+      "dependencies": ["build-docker"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "security-audit",
+      "name": "security-audit",
+      "estimated_duration": 45,
+      "dependencies": ["build-docker"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "integration-test",
+      "name": "integration-test",
+      "estimated_duration": 110,
+      "dependencies": ["e2e-test-suite"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "canary-deploy",
+      "name": "canary-deploy",
+      "estimated_duration": 60,
+      "dependencies": ["integration-test", "db-migration-check"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "smoke-tests",
+      "name": "smoke-tests",
+      "estimated_duration": 40,
+      "dependencies": ["integration-test"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "load-test",
+      "name": "load-test",
+      "estimated_duration": 75,
+      "dependencies": ["integration-test"],
+      "is_critical": false
+    }
+  ],
+  "ground_truth": {
+    "real_failures": ["db-migration-check", "canary-deploy"],
+    "flap_stages": ["e2e-test-suite", "dependency-audit", "perf-benchmark", "security-scan", "security-audit"],
+    "flap_probabilities": {
+      "e2e-test-suite": 0.80,
+      "dependency-audit": 0.70,
+      "perf-benchmark": 0.70,
+      "security-scan": 0.50,
+      "security-audit": 0.50
+    },
+    "optimal_execution_time": 550,
+    "hidden_dependencies": {
+      "smoke-tests": ["canary-deploy"]
+    },
+    "ambiguous_stages": ["e2e-test-suite", "dependency-audit", "perf-benchmark", "db-migration-check", "canary-deploy"]
+  },
+  "step_budget": 25,
+  "target_score": 0.65
+}

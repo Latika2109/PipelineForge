@@ -1,0 +1,100 @@
+{
+  "pipeline_id": "medium-001",
+  "name": "Microservices CI Pipeline",
+  "description": "12-stage microservices pipeline with parallelism opportunities. lint-service-b is a heavy flapper. dependency-audit has a real failure (CVE found).",
+  "stages": [
+    {
+      "stage_id": "checkout",
+      "name": "checkout",
+      "estimated_duration": 10,
+      "dependencies": [],
+      "is_critical": true
+    },
+    {
+      "stage_id": "lint-service-a",
+      "name": "lint-service-a",
+      "estimated_duration": 20,
+      "dependencies": ["checkout"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "lint-service-b",
+      "name": "lint-service-b",
+      "estimated_duration": 25,
+      "dependencies": ["checkout"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "lint-service-c",
+      "name": "lint-service-c",
+      "estimated_duration": 18,
+      "dependencies": ["checkout"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "unit-tests",
+      "name": "unit-tests",
+      "estimated_duration": 120,
+      "dependencies": ["lint-service-a", "lint-service-b", "lint-service-c"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "build-a",
+      "name": "build-a",
+      "estimated_duration": 60,
+      "dependencies": ["unit-tests"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "build-b",
+      "name": "build-b",
+      "estimated_duration": 55,
+      "dependencies": ["unit-tests"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "build-c",
+      "name": "build-c",
+      "estimated_duration": 65,
+      "dependencies": ["unit-tests"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "security-scan",
+      "name": "security-scan",
+      "estimated_duration": 90,
+      "dependencies": ["unit-tests"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "dependency-audit",
+      "name": "dependency-audit",
+      "estimated_duration": 40,
+      "dependencies": ["unit-tests"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "integration",
+      "name": "integration",
+      "estimated_duration": 150,
+      "dependencies": ["build-a", "build-b", "build-c"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "deploy",
+      "name": "deploy",
+      "estimated_duration": 45,
+      "dependencies": ["integration", "security-scan", "dependency-audit"],
+      "is_critical": true
+    }
+  ],
+  "ground_truth": {
+    "real_failures": ["dependency-audit"],
+    "flap_stages": ["lint-service-b", "security-scan"],
+    "flap_probabilities": {"lint-service-b": 0.80, "security-scan": 0.40},
+    "optimal_execution_time": 360,
+    "hidden_dependencies": {}
+  },
+  "step_budget": 18,
+  "target_score": 0.75
+}

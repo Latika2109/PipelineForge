@@ -1,0 +1,58 @@
+{
+  "pipeline_id": "easy-001",
+  "name": "Standard Python CI Pipeline",
+  "description": "A straight-line 6-stage Python project pipeline. integration-tests has a real failure this run. unit-tests occasionally flaps.",
+  "stages": [
+    {
+      "stage_id": "install-deps",
+      "name": "install-deps",
+      "estimated_duration": 45,
+      "dependencies": [],
+      "is_critical": true
+    },
+    {
+      "stage_id": "lint",
+      "name": "lint",
+      "estimated_duration": 12,
+      "dependencies": ["install-deps"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "unit-tests",
+      "name": "unit-tests",
+      "estimated_duration": 90,
+      "dependencies": ["lint"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "build",
+      "name": "build",
+      "estimated_duration": 60,
+      "dependencies": ["unit-tests"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "integration-tests",
+      "name": "integration-tests",
+      "estimated_duration": 180,
+      "dependencies": ["build"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "deploy-staging",
+      "name": "deploy-staging",
+      "estimated_duration": 30,
+      "dependencies": ["integration-tests"],
+      "is_critical": true
+    }
+  ],
+  "ground_truth": {
+    "real_failures": ["integration-tests"],
+    "flap_stages": ["unit-tests"],
+    "flap_probabilities": {"unit-tests": 0.75},
+    "optimal_execution_time": 287,
+    "hidden_dependencies": {}
+  },
+  "step_budget": 10,
+  "target_score": 0.80
+}

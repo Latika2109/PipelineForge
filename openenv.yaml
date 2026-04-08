@@ -1,0 +1,55 @@
+name: pipelineforge-env
+version: 1.0.0
+description: >
+  RL environment where an AI agent manages CI/CD pipeline execution —
+  deciding when to run, retry, skip, parallelize, or abort stages
+  to minimize wall-clock time while catching all real failures.
+  The core challenge: distinguishing transient flap failures from
+  genuine failures that should halt the pipeline.
+author: PipelineForge
+tags:
+  - devops
+  - cicd
+  - pipeline-optimization
+  - sequential-decision-making
+  - real-world
+
+observation_space:
+  type: PipelineObservation
+  description: >
+    DAG topology + stage execution state + result of last action.
+    Includes: completed/failed/skipped/runnable stages, elapsed time,
+    estimated remaining time, flap history (after inspect), step budget.
+
+action_space:
+  type: PipelineAction
+  description: >
+    run(stage_id) | run_parallel([stage_ids]) | skip(stage_id) |
+    retry(stage_id, n) | abort(reason) | wait(stage_id) | inspect(stage_id)
+
+reward_range: [-1.0, 1.0]
+
+endpoints:
+  reset: POST /reset
+  step:  POST /step
+  state: GET  /state
+  health: GET /health
+
+tasks:
+  - id: easy
+    difficulty: easy
+    description: "Linear 6-stage pipeline — identify and abort on real failure, retry flaps correctly"
+    step_budget: 10
+    target_score: 0.80
+
+  - id: medium
+    difficulty: medium
+    description: "12-stage parallel DAG — exploit parallelism, handle mixed failure signals"
+    step_budget: 18
+    target_score: 0.75
+
+  - id: hard
+    difficulty: hard
+    description: "20-stage enterprise DAG — classify ambiguous failures, detect cascade, meet time budget"
+    step_budget: 25
+    target_score: 0.65

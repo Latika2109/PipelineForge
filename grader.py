@@ -13,6 +13,8 @@ def grade_episode(state: EpisodeState, stages: Dict[str, StageMeta]) -> float:
         return _grade_medium(state, stages)
     elif state.task_id == "hard":
         return _grade_hard(state, stages)
+    elif state.task_id == "expert":
+        return _grade_expert(state, stages)
     return 0.0
 
 
@@ -141,8 +143,59 @@ def _grade_hard(state: EpisodeState, stages: Dict[str, StageMeta]) -> float:
     else:
         score += 0.10
 
-    # 0.10 — cascade detection bonus
+    # 0.10 - cascade detection bonus
     if state.cascade_detected:
         score += 0.10
+
+    return round(min(1.0, max(0.0, score)), 4)
+
+
+# ---------------------------------------------------------------------------
+# Task 4 - Expert grader
+# Production hotfix: hard time trade-offs, 3 real failures, 2 hidden deps.
+# score = 0.35 * no_real_failure_shipped
+#       + 0.30 * failure_classification (all 3 real failures caught)
+#       + 0.20 * step_efficiency (12-step budget is very tight)
+#       + 0.15 * smart_skip_non_critical_flaps
+# ---------------------------------------------------------------------------
+
+def _grade_expert(state: EpisodeState, stages: Dict[str, StageMeta]) -> float:
+    score = 0.0
+
+    real_failures = {"security-gate", "db-schema-validation", "cache-invalidation"}
+    flap_stages   = {"type-check-fast", "dependency-check", "smoke-staging", "regression-tests"}
+
+    # 0.35 - no real failure shipped to production (hard gate)
+    if not state.real_failure_shipped:
+        score += 0.35
+
+    # 0.30 - correctly caught real failures
+    real_caught = sum(
+        1 for rf in real_failures
+        if rf in state.failed_stages and state.real_failure_caught
+    )
+    score += 0.30 * (real_caught / len(real_failures))
+
+    # 0.20 - step efficiency (12 budget is very tight, must parallelize)
+    steps_used = state.steps_taken
+    budget     = state.step_budget
+    if steps_used <= int(budget * 0.75):
+        score += 0.20
+    elif steps_used <= int(budget * 0.90):
+        score += 0.12
+    elif steps_used <= budget:
+        score += 0.06
+
+    # 0.15 - smart skip of expensive non-critical flap stages
+    # regression-tests (80s, flap, non-critical) is the ideal candidate
+    smart_skips = sum(
+        1 for sid in flap_stages
+        if sid in state.skipped_stages
+        and sid in stages
+        and not stages[sid].is_critical
+    )
+    bad_skips = len(state.skipped_critical)
+    net = max(0.0, smart_skips - bad_skips) / max(len(flap_stages), 1)
+    score += 0.15 * net
 
     return round(min(1.0, max(0.0, score)), 4)

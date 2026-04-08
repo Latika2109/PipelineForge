@@ -36,7 +36,7 @@ if HF_TOKEN is None:
 TEMPERATURE = 0.0
 MAX_TOKENS  = 512
 MAX_STEPS   = 25
-TASKS       = ["easy", "medium", "hard"]
+TASKS       = ["easy", "medium", "hard", "expert"]
 ENV_NAME    = "pipelineforge"
 
 SYSTEM_PROMPT = textwrap.dedent("""

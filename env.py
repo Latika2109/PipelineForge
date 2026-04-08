@@ -13,9 +13,10 @@ from grader import grade_episode
 PIPELINE_BANK = Path(__file__).parent / "pipeline_bank"
 
 TASK_FILES = {
-    "easy": PIPELINE_BANK / "task_easy.json",
+    "easy":   PIPELINE_BANK / "task_easy.json",
     "medium": PIPELINE_BANK / "task_medium.json",
-    "hard": PIPELINE_BANK / "task_hard.json",
+    "hard":   PIPELINE_BANK / "task_hard.json",
+    "expert": PIPELINE_BANK / "task_expert.json",
 }
 
 
@@ -101,7 +102,7 @@ class PipelineForgeEnv:
             reward, message = self._handle_inspect(action)
 
         elif action.action_type == "wait":
-            message = f"Waiting for stage {action.stage_id}."
+            reward, message = self._handle_wait(action)
 
         else:
             message = f"Unknown action type: {action.action_type}"
@@ -277,19 +278,53 @@ class PipelineForgeEnv:
         reward = compute_reward(action, None, self.state, self.stages)
         return reward, f"Pipeline ABORTED. Reason: {action.reason}"
 
+    def _handle_wait(self, action: Action) -> Tuple[float, str]:
+        """Wait action: observe a stage without running it. Costs a small time penalty.
+        Useful for watching a running parallel stage before deciding next action.
+        """
+        sid = action.stage_id
+        if not sid or sid not in self.stages:
+            return -0.02, "Wait called with no valid stage. Wasted a step."
+
+        stage = self.stages[sid]
+        # Waiting costs a small amount of elapsed time (monitoring overhead)
+        self.state.total_elapsed_time += 3.0
+        status = self.state.stage_statuses.get(sid, "not_run")
+        flap_hint = ""
+        if sid in self.state.flap_stages:
+            flap_hint = " Stage has a known instability history — consider retry if it fails."
+        elif sid in self.state.real_failures:
+            flap_hint = " Stage appears stable in history — failures here may be genuine."
+
+        return -0.01, (
+            f"Waiting on '{sid}' (~{stage.estimated_duration}s est). "
+            f"Current status: {status}.{flap_hint}"
+        )
+
     def _handle_inspect(self, action: Action) -> Tuple[float, str]:
         sid = action.stage_id
         if not sid or sid not in self.stages:
             return 0.0, f"Invalid stage_id: {sid}"
 
-        flap_rate = self.state.flap_probabilities.get(sid, 0.0)
+        # For real failure stages: return a low but non-zero apparent flap rate.
+        # This makes real failures look like low-probability flaps, forcing the
+        # agent to use multiple signals (retry count, exit pattern) to distinguish.
+        if sid in self.state.real_failures:
+            apparent_rate = round(self.sim.rng.uniform(0.05, 0.18), 2)
+        else:
+            apparent_rate = self.state.flap_probabilities.get(sid, 0.0)
+
         if sid not in self.state.inspected_stages:
             self.state.inspected_stages.append(sid)
-        self.state.stage_flap_history[sid] = flap_rate  # stored in state for observation
+        self.state.stage_flap_history[sid] = apparent_rate
 
         reward = compute_reward(action, None, self.state, self.stages)
         is_critical = self.stages[sid].is_critical
-        return reward, f"Inspect '{sid}': flap_rate={flap_rate:.0%}, is_critical={is_critical}"
+        return reward, (
+            f"Inspect '{sid}': apparent_flap_rate={apparent_rate:.0%}, "
+            f"is_critical={is_critical}. "
+            f"Note: low flap rates may still indicate infra or code failures."
+        )
 
     # ------------------------------------------------------------------
     # Done check & observation builder

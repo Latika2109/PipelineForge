@@ -1,0 +1,132 @@
+{
+  "pipeline_id": "expert-hotfix-001",
+  "name": "Production Hotfix Pipeline",
+  "description": "15-stage hotfix pipeline under time pressure. 12 step budget forces hard trade-offs. 3 real failures, 4 flapping stages, 2 hidden dependencies. The agent must decide what is safe to skip vs what must run to protect production.",
+  "stages": [
+    {
+      "stage_id": "hotfix-checkout",
+      "name": "hotfix-checkout",
+      "estimated_duration": 5,
+      "dependencies": [],
+      "is_critical": true
+    },
+    {
+      "stage_id": "security-gate",
+      "name": "security-gate",
+      "estimated_duration": 20,
+      "dependencies": ["hotfix-checkout"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "critical-unit-tests",
+      "name": "critical-unit-tests",
+      "estimated_duration": 45,
+      "dependencies": ["hotfix-checkout"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "lint-quick",
+      "name": "lint-quick",
+      "estimated_duration": 8,
+      "dependencies": ["hotfix-checkout"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "type-check-fast",
+      "name": "type-check-fast",
+      "estimated_duration": 12,
+      "dependencies": ["hotfix-checkout"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "dependency-check",
+      "name": "dependency-check",
+      "estimated_duration": 18,
+      "dependencies": ["hotfix-checkout"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "hotfix-build",
+      "name": "hotfix-build",
+      "estimated_duration": 30,
+      "dependencies": ["critical-unit-tests"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "regression-tests",
+      "name": "regression-tests",
+      "estimated_duration": 80,
+      "dependencies": ["hotfix-build"],
+      "is_critical": false
+    },
+    {
+      "stage_id": "docker-build-hotfix",
+      "name": "docker-build-hotfix",
+      "estimated_duration": 40,
+      "dependencies": ["hotfix-build"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "db-schema-validation",
+      "name": "db-schema-validation",
+      "estimated_duration": 18,
+      "dependencies": ["docker-build-hotfix"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "cache-invalidation",
+      "name": "cache-invalidation",
+      "estimated_duration": 12,
+      "dependencies": ["docker-build-hotfix"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "staging-deploy",
+      "name": "staging-deploy",
+      "estimated_duration": 25,
+      "dependencies": ["docker-build-hotfix", "db-schema-validation"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "smoke-staging",
+      "name": "smoke-staging",
+      "estimated_duration": 20,
+      "dependencies": ["staging-deploy"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "prod-deploy",
+      "name": "prod-deploy",
+      "estimated_duration": 35,
+      "dependencies": ["staging-deploy", "smoke-staging"],
+      "is_critical": true
+    },
+    {
+      "stage_id": "smoke-prod",
+      "name": "smoke-prod",
+      "estimated_duration": 20,
+      "dependencies": ["prod-deploy"],
+      "is_critical": true
+    }
+  ],
+  "ground_truth": {
+    "real_failures": ["security-gate", "db-schema-validation", "cache-invalidation"],
+    "flap_stages": ["type-check-fast", "dependency-check", "smoke-staging", "regression-tests"],
+    "flap_probabilities": {
+      "type-check-fast": 0.65,
+      "dependency-check": 0.55,
+      "smoke-staging": 0.70,
+      "regression-tests": 0.60
+    },
+    "optimal_execution_time": 200,
+    "hidden_dependencies": {
+      "smoke-prod": ["cache-invalidation"]
+    },
+    "ambiguous_stages": [
+      "type-check-fast", "dependency-check", "smoke-staging",
+      "regression-tests", "security-gate", "db-schema-validation", "cache-invalidation"
+    ]
+  },
+  "step_budget": 12,
+  "target_score": 0.60
+}

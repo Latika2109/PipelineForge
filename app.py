@@ -199,6 +199,9 @@ header{padding:14px 24px;background:var(--surface);border-bottom:1px solid var(-
         <button class="task-btn" id="btn-hard" onclick="selectTask('hard')">
           Hard — Enterprise DAG<small>20 stages · Budget: 25 steps</small>
         </button>
+        <button class="task-btn" id="btn-expert" onclick="selectTask('expert')">
+          Expert — Hotfix Pipeline<small>15 stages · Budget: 12 steps</small>
+        </button>
       </div>
     </div>
 
@@ -274,12 +277,13 @@ let episodeStarted = false;
 const TASK_DESCS = {
   easy: "6-stage linear Python pipeline. unit-tests sometimes flaps (retry it!). integration-tests has a real failure this run — identify it and abort.",
   medium: "12-stage microservices DAG. Lint and build stages can run in parallel. lint-service-b is a heavy flapper. dependency-audit has a real CVE — real failure!",
-  hard: "20-stage enterprise pipeline. 3 stages look like real failures but are flaps. 2 are genuine failures. There is a hidden cascade dependency to discover!"
+  hard: "20-stage enterprise pipeline. 3 stages look like real failures but are flaps. 2 are genuine failures. There is a hidden cascade dependency to discover!",
+  expert: "15-stage HOTFIX pipeline. Only 12 steps budget. 3 real failures, 4 flapping stages, 2 hidden dependencies. You MUST parallelize and skip non-critical stages to fit the budget."
 };
 
 function selectTask(id) {
   selectedTask = id;
-  ['easy','medium','hard'].forEach(t => {
+  ['easy','medium','hard','expert'].forEach(t => {
     document.getElementById('btn-'+t).classList.toggle('active', t===id);
   });
   document.getElementById('task-desc').textContent = TASK_DESCS[id] || '';

@@ -270,9 +270,9 @@ def main() -> None:
     print("=" * 60, flush=True)
     for task, score in task_scores.items():
         bar = "█" * int(score * 20)
-        print(f"  {task:8s}: {score:.2f}  {bar}", flush=True)
+        print(f"  {task:8s}: {score:.4f}  {bar}", flush=True)
     avg = sum(task_scores.values()) / max(len(task_scores), 1)
-    print(f"\n  Average : {avg:.2f}", flush=True)
+    print(f"\n  Average : {avg:.4f}", flush=True)
 
 
 if __name__ == "__main__":

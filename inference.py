@@ -235,7 +235,7 @@ def run_task(client: OpenAI, task_id: str, seed: int = 42) -> float:
             break
 
     log_end(success=success, steps=steps_taken, rewards=rewards)
-    score = obs.get("score") or obs.get("info", {}).get("score") or 0.0
+    score = obs.get("score") or obs.get("info", {}).get("score") or 0.001
     return float(score)
 
 
@@ -263,7 +263,7 @@ def main() -> None:
             task_scores[task] = run_task(client, task_id=task, seed=42)
         except Exception as exc:
             print(f"[ERROR] Task {task} failed: {exc}", flush=True)
-            task_scores[task] = 0.0
+            task_scores[task] = 0.001
 
     print(f"\n{'='*60}", flush=True)
     print("BASELINE RESULTS (seed=42)", flush=True)

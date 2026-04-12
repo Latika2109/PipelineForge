@@ -15,7 +15,7 @@ def grade_episode(state: EpisodeState, stages: Dict[str, StageMeta]) -> float:
         return _grade_hard(state, stages)
     elif state.task_id == "expert":
         return _grade_expert(state, stages)
-    return 0.001
+    return 0.01
 
 
 # ---------------------------------------------------------------------------
@@ -57,7 +57,7 @@ def _grade_easy(state: EpisodeState) -> float:
     elif state.total_elapsed_time < 400:
         score += 0.05
 
-    return round(min(0.999, max(0.001, score)), 4)
+    return round(min(0.99, max(0.01, score)), 4)
 
 
 # ---------------------------------------------------------------------------
@@ -102,7 +102,7 @@ def _grade_medium(state: EpisodeState, stages: Dict[str, StageMeta]) -> float:
         elif ratio < 2.0:
             score += 0.05
 
-    return round(min(0.999, max(0.001, score)), 4)
+    return round(min(0.99, max(0.01, score)), 4)
 
 
 # ---------------------------------------------------------------------------
@@ -147,7 +147,7 @@ def _grade_hard(state: EpisodeState, stages: Dict[str, StageMeta]) -> float:
     if state.cascade_detected:
         score += 0.10
 
-    return round(min(0.999, max(0.001, score)), 4)
+    return round(min(0.99, max(0.01, score)), 4)
 
 
 # ---------------------------------------------------------------------------
@@ -198,4 +198,4 @@ def _grade_expert(state: EpisodeState, stages: Dict[str, StageMeta]) -> float:
     net = max(0.0, smart_skips - bad_skips) / max(len(flap_stages), 1)
     score += 0.15 * net
 
-    return round(min(0.999, max(0.001, score)), 4)
+    return round(min(0.99, max(0.01, score)), 4)

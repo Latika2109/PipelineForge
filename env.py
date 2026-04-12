@@ -120,7 +120,7 @@ class PipelineForgeEnv:
         })
 
         # ---- Score if done ----
-        score = None
+        score = 0.01  # Default safe float to prevent JS `null <= 0.0` coercion 
         if self.state.done:
             score = grade_episode(self.state, self.stages)
 
@@ -368,7 +368,7 @@ class PipelineForgeEnv:
     def _build_observation(
         self,
         reward: float = 0.0,
-        score: Optional[float] = None,
+        score: Optional[float] = 0.01,
         message: str = "",
     ) -> Observation:
         state = self.state
